@@ -12,12 +12,42 @@ const emailQueue = require('./emailQueue');
 const initWorkers = () => {
     const { processCampaign, selectABWinner, sendSingleEmail } = require('../services/emailEngine.service');
     const { processEnrollmentStep } = require('../services/automation.service');
+    const { notifyCampaignComplete } = require('../services/telegram.service');
 
     // ─── Campaign send ─────────────────────────────────────────────────────
     emailQueue.process('send-campaign', 5, async (job) => {
         const { campaignId, resume } = job.data;
         console.log(`📧 Processing campaign: ${campaignId} (resume: ${resume || false})`);
-        await processCampaign(campaignId, resume || false);
+
+        try {
+            const result = await processCampaign(campaignId, resume || false);
+
+            // ─── Telegram Notification — Success ──────────────────────────
+            const Campaign = require('../models/Campaign.model');
+            const campaign = await Campaign.findById(campaignId).select('name userId stats');
+            if (campaign) {
+                await notifyCampaignComplete(campaign.userId, campaign.name, {
+                    success: true,
+                    sent: campaign.stats?.sent || 0,
+                    failed: campaign.stats?.failed || 0,
+                });
+            }
+        } catch (err) {
+            // ─── Telegram Notification — Failure ──────────────────────────
+            try {
+                const Campaign = require('../models/Campaign.model');
+                const campaign = await Campaign.findById(campaignId).select('name userId');
+                if (campaign) {
+                    await notifyCampaignComplete(campaign.userId, campaign.name, {
+                        success: false,
+                        sent: 0,
+                        failed: 0,
+                        error: err.message,
+                    });
+                }
+            } catch (_) { }
+            throw err; // re-throw so queue marks job as failed
+        }
     });
 
     // ─── A/B Winner Selection ──────────────────────────────────────────────

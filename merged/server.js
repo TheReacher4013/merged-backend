@@ -24,6 +24,14 @@ const razorpayRoutes = require('./routes/razorpay.routes');
 const trialRoutes = require('./routes/trial.routes');
 const whatsappRoutes = require('./routes/whatsapp.routes');
 
+// ─── New Modules ───────────────────────────────────────────────────────────────
+const superAdminRoutes = require('./routes/superAdmin.routes');
+const auditLogRoutes   = require('./routes/auditLog.routes');
+const apiKeyRoutes     = require('./routes/apiKey.routes');
+
+// ─── Telegram Bot ─────────────────────────────────────────────────────────────
+const telegramRoutes = require('./routes/telegram.routes');
+
 // ─── Middleware & Workers ─────────────────────────────────────────────────────
 const { errorHandler } = require('./middleware/errorHandler');
 const { scheduleAutomationRunner } = require('./jobs/cronJobs');
@@ -49,23 +57,31 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static('uploads'));
 
 // ─── Your Routes ─────────────────────────────────────────────────────────────
-app.use('/api/auth', authRoutes);
-app.use('/api/contacts', contactRoutes);
-app.use('/api/templates', templateRoutes);
-app.use('/api/campaigns', campaignRoutes);
+app.use('/api/auth',        authRoutes);
+app.use('/api/contacts',    contactRoutes);
+app.use('/api/templates',   templateRoutes);
+app.use('/api/campaigns',   campaignRoutes);
 app.use('/api/automations', automationRoutes);
-app.use('/api/track', trackingRoutes);   // public — no auth
-app.use('/api/analytics', analyticsRoutes);
+app.use('/api/track',       trackingRoutes);   // public — no auth
+app.use('/api/analytics',   analyticsRoutes);
 
 // ─── Friend's 8 Module Routes ─────────────────────────────────────────────────
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/announcements', announcementRoutes);
-app.use('/api/coupons', couponRoutes);
-app.use('/api/referrals', referralRoutes);
+app.use('/api/coupons',       couponRoutes);
+app.use('/api/referrals',     referralRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
-app.use('/api/razorpay', razorpayRoutes);
-app.use('/api/trial', trialRoutes);
-app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/razorpay',      razorpayRoutes);
+app.use('/api/trial',         trialRoutes);
+app.use('/api/whatsapp',      whatsappRoutes);
+
+// ─── New Module Routes ────────────────────────────────────────────────────────
+app.use('/api/admin',       superAdminRoutes);   // Super Admin panel
+app.use('/api/audit-logs',  auditLogRoutes);     // Audit logs
+app.use('/api/keys',        apiKeyRoutes);        // API key management
+
+// ─── Telegram Bot Routes ──────────────────────────────────────────────────────
+app.use('/api/telegram',    telegramRoutes);     // Telegram bot
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'OK', timestamp: new Date() }));
@@ -79,6 +95,13 @@ mongoose.connect(process.env.MONGO_URI)
         console.log('✅ MongoDB Connected');
         initWorkers();
         scheduleAutomationRunner();
+
+        // ─── Register Telegram Webhook ─────────────────────────────────────────
+        if (process.env.TELEGRAM_BOT_TOKEN) {
+            const { registerWebhook } = require('./services/telegram.service');
+            registerWebhook();
+        }
+
         app.listen(process.env.PORT || 5000, () => {
             console.log('🚀 Server running on port ' + (process.env.PORT || 5000));
         });

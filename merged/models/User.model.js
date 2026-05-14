@@ -43,6 +43,12 @@ const userSchema = new mongoose.Schema(
         facebookId: { type: String, sparse: true },
         avatar: { type: String },
 
+        // ─── Telegram Integration ─────────────────────────────────────────────────
+        telegramLinked:    { type: Boolean, default: false },
+        telegramChatId:    { type: String },
+        telegramUserId:    { type: String },
+        telegramLinkToken: { type: String, select: false },
+
         // ─── Email Verification ───────────────────────────────────────────────────
         emailVerificationToken: { type: String, select: false },
         emailVerificationExpiry: { type: Date, select: false },

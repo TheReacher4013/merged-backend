@@ -14,7 +14,7 @@
   "type": "commonjs",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1045.0",
-    "axios": "^1.6.0",
+    "axios": "^1.16.1",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",

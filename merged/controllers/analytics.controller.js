@@ -14,7 +14,7 @@ const getDashboard = asyncHandler(async (req, res) => {
     const days = periodMap[period] || 30;
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-    // ─── Aggregate campaign stats for period ──────────────────────────────────
+    //Aggregate campaign stats for period 
     const campaignStats = await Campaign.aggregate([
         { $match: { userId, sentAt: { $gte: since }, status: 'sent' } },
         {
@@ -48,7 +48,7 @@ const getDashboard = asyncHandler(async (req, res) => {
         unsubscribeRate: ((stats.totalUnsubscribed / sent) * 100).toFixed(2),
     };
 
-    // ─── Contact growth over period ───────────────────────────────────────────
+    //Contact growth over period 
     const contactGrowth = await Contact.aggregate([
         { $match: { userId, createdAt: { $gte: since }, isDeleted: false } },
         {
@@ -63,7 +63,7 @@ const getDashboard = asyncHandler(async (req, res) => {
     const totalContacts = await Contact.countDocuments({ userId, isDeleted: false, status: 'subscribed' });
     const newContacts = await Contact.countDocuments({ userId, createdAt: { $gte: since }, isDeleted: false });
 
-    // ─── Campaign performance over time (daily sent count) ───────────────────
+    // Campaign performance over time (daily sent count) 
     const sendingTrend = await Campaign.aggregate([
         { $match: { userId, sentAt: { $gte: since }, status: 'sent' } },
         {
@@ -76,19 +76,19 @@ const getDashboard = asyncHandler(async (req, res) => {
         { $sort: { _id: 1 } },
     ]);
 
-    // ─── Top 5 campaigns by open rate ────────────────────────────────────────
+    //Top 5 campaigns by open rate
     const topCampaigns = await Campaign.find({ userId, status: 'sent', 'stats.sent': { $gt: 0 } })
         .sort({ 'stats.uniqueOpens': -1 })
         .limit(5)
         .select('name stats.sent stats.uniqueOpens stats.uniqueClicks sentAt');
 
-    // ─── Recent campaigns ─────────────────────────────────────────────────────
+    //Recent campaigns 
     const recentCampaigns = await Campaign.find({ userId, isDeleted: false })
         .sort({ createdAt: -1 })
         .limit(5)
         .select('name status stats.sent stats.uniqueOpens scheduledAt sentAt createdAt');
 
-    // ─── Automation summary ───────────────────────────────────────────────────
+    //Automation summary
     const automationStats = await Automation.aggregate([
         { $match: { userId, isDeleted: false } },
         { $group: { _id: '$status', count: { $sum: 1 } } },
